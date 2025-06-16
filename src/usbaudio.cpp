@@ -66,7 +66,7 @@ audio_control_range_4_n_t(1) sampleFreqRng;          // Sample frequency range s
 // CH2, buffer[3] for CH3
 adxl_345* sensor;
 const uint8_t buffersize = 16;
-uint16_t i2s_dummy_buffer[buffersize * 4];
+uint8_t i2s_dummy_buffer[buffersize * 4 * 2]; // 4 channels, 2 bytes per sample
 bool data_ready = false;
 
 void audio_task(void);
@@ -83,13 +83,13 @@ int main(void) {
     uint8_t range           = 3;
     uint8_t rate            = 15;
 
-    // Check if the ADXL345 is present
-    if (sensor->is_adxl345_present()) {
-        printf("ADXL345 sensor is present.\n");
-    } else {
-        printf("ADXL345 sensor not found.\n");
-        return -1; // Exit if sensor is not found
-    }
+    // // Check if the ADXL345 is present
+    // if (sensor->is_adxl345_present()) {
+    //     printf("ADXL345 sensor is present.\n");
+    // } else {
+    //     printf("ADXL345 sensor not found.\n");
+    //     return -1; // Exit if sensor is not found
+    // }
 
     sensor->set_power_mode(adxl345_power_mode::MEASURE);
     sensor->set_full_resolution(true);
@@ -115,10 +115,6 @@ int main(void) {
     sampleFreqRng.subrange[0].bMin = AUDIO_SAMPLE_RATE;
     sampleFreqRng.subrange[0].bMax = AUDIO_SAMPLE_RATE;
     sampleFreqRng.subrange[0].bRes = 0;
-
-    // Generate dummy data
-    uint16_t* p_buff  = i2s_dummy_buffer;
-    uint16_t  dataVal = 0;
 
     while (1) {
         tud_task(); // tinyusb device task
@@ -155,7 +151,7 @@ void adxl345_task(void) {
     sensor->read_interrupt_register(); // Read the interrupt register to check for data ready
     if (sensor->is_fifo_ready()) {
         for (size_t i = 0; i < buffersize; i++) {
-            sensor->read(adxl345_register::REG_DATAX0, (uint8_t*)i2s_dummy_buffer + i * 6, 6);
+            sensor->read(adxl345_register::REG_DATAX0, ((uint8_t*)i2s_dummy_buffer) + i * 8, 6);
         }
         data_ready = true;
     }
@@ -179,7 +175,7 @@ void audio_task(void) {
 }
 
 //--------------------------------------------------------------------+
-// Application Callback API Implementations
+// Application Callback API Implementations 
 //--------------------------------------------------------------------+
 
 // Invoked when audio class specific set request received for an EP
